@@ -27,7 +27,7 @@ jobs:
         run: |
           python generate_danmatsu.py
 
-      - name: Commit and Push Changes
+    - name: Commit and Push Changes
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
