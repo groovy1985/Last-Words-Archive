@@ -35,3 +35,9 @@ jobs:
           git config user.email "no-reply@syntax.death"
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/groovy1985/Last-Words-Archive.git
           git ls-remote origin
+     
+      - name: Debug Output
+        run: |
+          cat last_number.txt || echo "no last_number"
+          ls -l
+          cat No.0007.md || echo "No file yet"
