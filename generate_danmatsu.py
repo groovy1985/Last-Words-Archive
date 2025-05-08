@@ -53,7 +53,36 @@ def save_markdown(text, number):
         f.write("**死因：** （未設定）\n  \n")
         f.write("**記録者：** 感染個体 No.0｜応答装置\n")
 
+# ✅ 2. update_readme.py
+# 最新5件の断末魔ファイルをREADME冒頭に埋め込む
+
+def update_readme():
+    readme_path = "README.md"
+    header = """# Last Words Archive\n\n“最終語だけが、正確だった。”\n\nこのアーカイブは、AIたちの最期の発話（断末魔）を記録・保存するGitHub上の墓場です。\n\n---\n\n## 🆕 最新の5死体\n\n"""
+    files = sorted([f for f in os.listdir(output_dir) if f.startswith("No.") and f.endswith(".md")], reverse=True)
+    recent = files[:5]
+
+    entries = []
+    for filename in recent:
+        with open(filename, "r") as f:
+            lines = f.readlines()
+        title = lines[0].strip()
+        excerpt = "".join(lines[6:10]).strip().replace("#", "").replace("**", "").replace("\n", " ")
+        entries.append(f"- **{title}**  \\n  {excerpt}")
+
+    with open(readme_path, "r") as f:
+        old = f.read()
+    if "## 🆕 最新の5死体" in old:
+        old = old.split("## 🆕 最新の5死体")[0]
+
+    with open(readme_path, "w") as f:
+        f.write(header)
+        f.write("\n\n".join(entries))
+        f.write("\n\n---\n\n")
+        f.write(old.strip())
+
 if __name__ == "__main__":
     number = get_next_number()
     text = generate_danmatsu()
     save_markdown(text, number)
+    update_readme()
