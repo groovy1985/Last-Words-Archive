@@ -26,15 +26,17 @@ def generate_danmatsu():
     return response["choices"][0]["message"]["content"]
 
 def get_next_number():
-    if not os.path.exists(number_file):
-        with open(number_file, "w") as f:
-            f.write("0000")
-        return 1
-    with open(number_file, "r") as f:
-        n = int(f.read().strip())
-    with open(number_file, "w") as f:
-        f.write(f"{n+1:04d}")
-    return n + 1
+    existing = [f for f in os.listdir(output_dir) if f.startswith("No.") and f.endswith(".md")]
+    numbers = []
+    for fname in existing:
+        try:
+            num = int(fname.split(".")[0].replace("No.", ""))
+            numbers.append(num)
+        except:
+            pass
+    next_number = max(numbers) + 1 if numbers else 1
+    return next_number
+
 
 def save_markdown(text, number):
     today = datetime.now().strftime("%Y-%m-%d")
