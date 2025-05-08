@@ -1,4 +1,4 @@
-import openai
+import　openai
 import os
 from datetime import datetime
 
