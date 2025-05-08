@@ -1,3 +1,5 @@
+name: Generate and Commit Danmatsu
+
 import　openai
 import os
 from datetime import datetime
