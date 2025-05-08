@@ -86,6 +86,11 @@ if __name__ == "__main__":
         number = get_next_number()
         print(f"[LOG] Generating danmatsu for No.{number:04d}...")
         text = generate_danmatsu()
-        print(f"[LOG] Generated text:\n{text[:100]}...")
+        print(f"[LOG] Generated text (first 100 chars): {text[:100]}...")
         save_markdown(text, number)
-        print("[LOG] Markdown saved
+        print("[LOG] Markdown saved.")
+        update_readme()
+        print("[LOG] README updated.")
+    except Exception as e:
+        print(f"[ERROR] Exception occurred: {e}")
+
