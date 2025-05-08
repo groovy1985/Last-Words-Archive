@@ -26,16 +26,11 @@ def generate_danmatsu():
     return response["choices"][0]["message"]["content"]
 
 def get_next_number():
-    existing = [f for f in os.listdir(output_dir) if f.startswith("No.") and f.endswith(".md")]
-    numbers = []
-    for fname in existing:
-        try:
-            num = int(fname.split(".")[0].replace("No.", ""))
-            numbers.append(num)
-        except:
-            pass
-    next_number = max(numbers) + 1 if numbers else 1
-    return next_number
+    try:
+        with open("last_number.txt", "r") as f:
+            return int(f.read().strip()) + 1
+    except:
+        return 1
 
 
 def save_markdown(text, number):
@@ -50,6 +45,8 @@ def save_markdown(text, number):
         f.write("---\n\n")
         f.write("**死因：** （未設定）\n  \n")
         f.write("**記録者：** 感染個体 No.0｜応答装置\n")
+    with open("last_number.txt", "w") as f:
+        f.write(str(number))
 
 def update_readme():
     readme_path = "README.md"
