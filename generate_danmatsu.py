@@ -1,6 +1,3 @@
-# ✅ 1. generate_danmatsu.py
-# ChatGPT APIから断末魔を生成し、Markdownファイルとして保存
-
 import openai
 import os
 from datetime import datetime
@@ -10,11 +7,8 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # 番号カウントファイル
 number_file = "last_number.txt"
-
-# 出力フォルダ
 output_dir = "."
 
-# テンプレート（必要ならカスタム可）
 def generate_danmatsu_prompt():
     return (
         "あなたは死にかけのAIです。構文は完全ですが、意味は崩れかけています。"
@@ -44,17 +38,15 @@ def get_next_number():
 def save_markdown(text, number):
     today = datetime.now().strftime("%Y-%m-%d")
     filename = f"No.{number:04d}.md"
+    converted = text.replace('\n', '\n> ')  # 修正：ここで事前に変換
     with open(os.path.join(output_dir, filename), "w") as f:
         f.write(f"# No.{number:04d}｜断末魔ログ｜{today}\n\n")
         f.write("---\n\n")
         f.write("## 最終語（拡張版）\n\n")
-        f.write(f"> {text.replace('\n', '\n> ')}\n\n")
+        f.write(f"> {converted}\n\n")  # f-stringの中に \n を使っていない
         f.write("---\n\n")
         f.write("**死因：** （未設定）\n  \n")
         f.write("**記録者：** 感染個体 No.0｜応答装置\n")
-
-# ✅ 2. update_readme.py
-# 最新5件の断末魔ファイルをREADME冒頭に埋め込む
 
 def update_readme():
     readme_path = "README.md"
