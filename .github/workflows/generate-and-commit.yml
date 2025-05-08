@@ -48,10 +48,12 @@ jobs:
         run: |
           git config user.name "syntax-death"
           git config user.email "no-reply@syntax.death"
+          git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/groovy1985/Last-Words-Archive.git
           git add .
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
             git commit -m "🤖 Auto-generated danmatsu log"
-            git push https://x-access-token:${GH_TOKEN}@github.com/groovy1985/Last-Words-Archive.git HEAD:main
+            git push origin HEAD:main
           fi
+
