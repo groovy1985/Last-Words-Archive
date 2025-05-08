@@ -79,3 +79,13 @@ if __name__ == "__main__":
     text = generate_danmatsu()
     save_markdown(text, number)
     update_readme()
+
+if __name__ == "__main__":
+    try:
+        print("[LOG] Getting next number...")
+        number = get_next_number()
+        print(f"[LOG] Generating danmatsu for No.{number:04d}...")
+        text = generate_danmatsu()
+        print(f"[LOG] Generated text:\n{text[:100]}...")
+        save_markdown(text, number)
+        print("[LOG] Markdown saved
