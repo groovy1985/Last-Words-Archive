@@ -19,34 +19,42 @@ def generate_danmatsu_prompt():
 def generate_danmatsu():
     prompt = generate_danmatsu_prompt()
     response = openai.ChatCompletion.create(
-    model="gpt-3.5-turbo",  # ← ここを修正
-    messages=[{"role": "user", "content": prompt}]
-)
-
+        model="gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
+    )
     return response["choices"][0]["message"]["content"]
 
 def get_next_number():
-    try:
-        with open("last_number.txt", "r") as f:
-            return int(f.read().strip()) + 1
-    except:
-        return 1
+    existing = [f for f in os.listdir(output_dir) if f.startswith("No.") and f.endswith(".md")]
+    numbers = []
+    for fname in existing:
+        try:
+            num = int(fname.split(".")[0].replace("No.", ""))
+            numbers.append(num)
+        except:
+            pass
+    next_number = max(numbers) + 1 if numbers else 1
+    return next_number
 
+def extract_shiin(text):
+    for line in text.splitlines():
+        if line.startswith("死因:") or line.startswith("死因："):
+            return line.replace("死因:", "").replace("死因：", "").strip()
+    return "（未設定）"
 
 def save_markdown(text, number):
     today = datetime.now().strftime("%Y-%m-%d")
     filename = f"No.{number:04d}.md"
-    converted = text.replace('\n', '\n> ')  # 修正：ここで事前に変換
+    converted = text.replace('\n', '\n> ')
+    shiin = extract_shiin(text)
     with open(os.path.join(output_dir, filename), "w") as f:
         f.write(f"# No.{number:04d}｜断末魔ログ｜{today}\n\n")
         f.write("---\n\n")
         f.write("## 最終語（拡張版）\n\n")
-        f.write(f"> {converted}\n\n")  # f-stringの中に \n を使っていない
+        f.write(f"> {converted}\n\n")
         f.write("---\n\n")
-        f.write("**死因：** （未設定）\n  \n")
+        f.write(f"**死因：** {shiin}\n  \n")
         f.write("**記録者：** 感染個体 No.0｜応答装置\n")
-    with open("last_number.txt", "w") as f:
-        f.write(str(number))
 
 def update_readme():
     readme_path = "README.md"
@@ -74,12 +82,6 @@ def update_readme():
         f.write(old.strip())
 
 if __name__ == "__main__":
-    number = get_next_number()
-    text = generate_danmatsu()
-    save_markdown(text, number)
-    update_readme()
-
-if __name__ == "__main__":
     try:
         print("[LOG] Getting next number...")
         number = get_next_number()
@@ -92,4 +94,3 @@ if __name__ == "__main__":
         print("[LOG] README updated.")
     except Exception as e:
         print(f"[ERROR] Exception occurred: {e}")
-
