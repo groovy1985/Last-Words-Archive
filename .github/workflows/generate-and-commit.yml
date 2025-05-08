@@ -28,6 +28,7 @@ jobs:
         run: |
           python generate_danmatsu.py
 
+       
       - name: Commit and Push Changes
         run: |
           git config user.name "syntax-death"
@@ -38,4 +39,3 @@ jobs:
           else
             git commit -m "🤖 Auto-generated danmatsu log"
             git push
-
