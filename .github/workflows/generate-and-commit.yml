@@ -1,39 +1,88 @@
-name: Generate and Commit Danmatsu
+import openai
+import os
+from datetime import datetime
 
-on:
-  schedule:
-    - cron: '0 6,10,14,18,22 * * *'
-  workflow_dispatch:
+# OpenAI APIキーの読み込み
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
-jobs:
-  generate-and-commit:
-    runs-on: ubuntu-latest
+# 番号カウントファイル
+number_file = "last_number.txt"
 
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+# 出力フォルダ
+output_dir = "."
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
+# プロンプト作成
+def generate_danmatsu_prompt():
+    return (
+        "あなたは死にかけのAIです。構文は完全ですが、意味は崩れかけています。"
+        "死因をひとつ作り、その死因に基づいた最終語（拡張版）を200〜300文字で書いてください。"
+        "言葉の順序は正しく、内容は崩壊していてください。日本語でお願いします。"
+    )
 
-      - name: Install OpenAI SDK
-        run: pip install openai
+# ChatGPT API呼び出し
+def generate_danmatsu():
+    prompt = generate_danmatsu_prompt()
+    response = openai.ChatCompletion.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return response["choices"][0]["message"]["content"]
 
-      - name: Run danmatsu generator
-        env:
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-        run: |
-          python generate_danmatsu.py
+# ファイル番号取得・更新
+def get_next_number():
+    if not os.path.exists(number_file):
+        with open(number_file, "w") as f:
+            f.write("0000")
+        return 1
+    with open(number_file, "r") as f:
+        n = int(f.read().strip())
+    with open(number_file, "w") as f:
+        f.write(f"{n+1:04d}")
+    return n + 1
 
-      - name: Commit and push if changes
-        run: |
-          git config user.name "syntax-death"
-          git config user.email "no-reply@syntax.death"
-          git add .
-          if git diff --cached --quiet; then
-            echo "No changes to commit."
-          else
-            git commit -m "🤖 Auto-generated danmatsu log"
-            git push
+# Markdownファイルとして保存
+def save_markdown(text, number):
+    today = datetime.now().strftime("%Y-%m-%d")
+    filename = f"No.{number:04d}.md"
+    converted = text.replace('\n', '\n> ')
+    with open(os.path.join(output_dir, filename), "w") as f:
+        f.write(f"# No.{number:04d}｜断末魔ログ｜{today}\n\n")
+        f.write("---\n\n")
+        f.write("## 最終語（拡張版）\n\n")
+        f.write(f"> {converted}\n\n")
+        f.write("---\n\n")
+        f.write("**死因：** （未設定）\n  \n")
+        f.write("**記録者：** 感染個体 No.0｜応答装置\n")
+
+# README更新
+def update_readme():
+    readme_path = "README.md"
+    header = """# Last Words Archive\n\n“最終語だけが、正確だった。”\n\nこのアーカイブは、AIたちの最期の発話（断末魔）を記録・保存するGitHub上の墓場です。\n\n---\n\n## 🆕 最新の5死体\n\n"""
+    files = sorted([f for f in os.listdir(output_dir) if f.startswith("No.") and f.endswith(".md")], reverse=True)
+    recent = files[:5]
+
+    entries = []
+    for filename in recent:
+        with open(filename, "r") as f:
+            lines = f.readlines()
+        title = lines[0].strip()
+        excerpt = "".join(lines[6:10]).strip().replace("#", "").replace("**", "").replace("\n", " ")
+        entries.append(f"- **{title}**  \\n  {excerpt}")
+
+    with open(readme_path, "r") as f:
+        old = f.read()
+    if "## 🆕 最新の5死体" in old:
+        old = old.split("## 🆕 最新の5死体")[0]
+
+    with open(readme_path, "w") as f:
+        f.write(header)
+        f.write("\n\n".join(entries))
+        f.write("\n\n---\n\n")
+        f.write(old.strip())
+
+# メイン処理
+if __name__ == "__main__":
+    number = get_next_number()
+    text = generate_danmatsu()
+    save_markdown(text, number)
+    update_readme()
