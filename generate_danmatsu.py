@@ -19,9 +19,10 @@ def generate_danmatsu_prompt():
 def generate_danmatsu():
     prompt = generate_danmatsu_prompt()
     response = openai.ChatCompletion.create(
-        model="gpt-4",
-        messages=[{"role": "user", "content": prompt}]
-    )
+    model="gpt-3.5-turbo",  # ← ここを修正
+    messages=[{"role": "user", "content": prompt}]
+)
+
     return response["choices"][0]["message"]["content"]
 
 def get_next_number():
