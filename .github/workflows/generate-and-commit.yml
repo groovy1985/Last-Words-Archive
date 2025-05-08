@@ -27,7 +27,7 @@ jobs:
         run: |
           python generate_danmatsu.py
 
-        - name: Commit and Push Changes
+      - name: Commit and Push Changes
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
@@ -40,4 +40,3 @@ jobs:
             git commit -m "🤖 Auto-generated danmatsu log"
             git push https://x-access-token:${GH_TOKEN}@github.com/groovy1985/Last-Words-Archive.git HEAD:main
           fi
-
