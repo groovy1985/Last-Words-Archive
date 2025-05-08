@@ -38,6 +38,3 @@ jobs:
             git commit -m "🤖 Auto-generated danmatsu log"
             git push
 
-git add .github/workflows/generate-and-commit.yml
-git commit -m "✅ Fix syntax error and enable GitHub Actions"
-git push
