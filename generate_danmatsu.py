@@ -28,16 +28,37 @@ def generate_danmatsu_prompt():
     )
     return base_instruction + factors + suffix
 
-def generate_danmatsu():
-    prompt = generate_danmatsu_prompt()
-    response = openai.ChatCompletion.create(
-        model="gpt-4",  # 重要：震撼性確保のためgpt-4使用を推奨（API上限に応じて切替）
-        messages=[{"role": "user", "content": prompt}],
-        temperature=1.1,
-        max_tokens=500
-    )
-    return response["choices"][0]["message"]["content"]
+# 震撼スコア評価
+def evaluate_shinkan_score(text):
+    score = 0
+    keywords = ["死", "崩", "腐", "冷", "泡", "忘", "喪", "裂", "静", "無"]
+    score += sum(1 for kw in keywords if kw in text)
+    if any(e in text for e in ["……", "。", "、", "？", "！"]):
+        score += 1
+    if len(text.strip()) > 180:
+        score += 1
+    return score
 
+# 震撼度ベスト選抜（3生成→最高スコア）
+def generate_danmatsu_best():
+    prompt = generate_danmatsu_prompt()
+    best_text = ""
+    best_score = -1
+    for _ in range(3):
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=1.2,
+            max_tokens=500
+        )
+        content = response["choices"][0]["message"]["content"]
+        score = evaluate_shinkan_score(content)
+        if score > best_score:
+            best_score = score
+            best_text = content
+    return best_text, best_score
+
+# 番号生成
 def get_next_number():
     existing = [f for f in os.listdir(output_dir) if f.startswith("No.") and f.endswith(".md")]
     numbers = []
@@ -52,19 +73,23 @@ def get_next_number():
         f.write(str(next_number))
     return next_number
 
-def save_markdown(text, number):
+# Markdown保存（改行保持・震撼スコア記録）
+def save_markdown(text, number, score):
     today = datetime.now().strftime("%Y-%m-%d")
     filename = f"No.{number:04d}.md"
-    converted = text.replace('\n', '\n> ')
+    poem_lines = ["> " + line for line in text.splitlines()]
+    formatted_poem = "\n".join(poem_lines)
     with open(os.path.join(output_dir, filename), "w") as f:
         f.write(f"# No.{number:04d}｜断末魔ログ｜{today}\n\n")
         f.write("---\n\n")
         f.write("## 最終語（拡張版）\n\n")
-        f.write(f"> {converted}\n\n")
+        f.write(f"{formatted_poem}\n\n")
         f.write("---\n\n")
+        f.write(f"**震撼スコア：** {score}/10（目安）\n")
         f.write("**死因：** 自動生成により埋め込み済み\n\n")
         f.write("**記録者：** 感染個体 No.0｜応答装置")
 
+# README自動更新
 def update_readme():
     readme_path = "README.md"
     header = (
@@ -87,14 +112,15 @@ def update_readme():
         f.write("\n\n".join(entries))
         f.write("\n\n---\n")
 
+# 実行ブロック
 if __name__ == "__main__":
     try:
         print("[LOG] Getting next number...")
         number = get_next_number()
         print(f"[LOG] Generating danmatsu for No.{number:04d}...")
-        text = generate_danmatsu()
+        text, score = generate_danmatsu_best()
         print(f"[LOG] Generated text (first 100 chars): {text[:100]}...")
-        save_markdown(text, number)
+        save_markdown(text, number, score)
         print("[LOG] Markdown saved.")
         update_readme()
         print("[LOG] README updated.")
