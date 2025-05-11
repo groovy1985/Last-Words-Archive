@@ -2,7 +2,7 @@ name: Generate and Commit Danmatsu
 
 on:
   schedule:
-    - cron: '0 6,10,14,18,22 * * *'  # 1日5回（JST：15:00, 19:00, 23:00, 3:00, 7:00）
+    - cron: '0 6,10,14,18,22 * * *'  # 1日5回（JST 15:00, 19:00, 23:00, 3:00, 7:00）
   workflow_dispatch: {}
 
 jobs:
@@ -30,8 +30,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          git config user.name "syntax-death"
-          git config user.email "no-reply@syntax.death"
+          git config --global user.name "syntax-death"
+          git config --global user.email "no-reply@syntax.death"
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
           git add .
           if git diff --cached --quiet; then
