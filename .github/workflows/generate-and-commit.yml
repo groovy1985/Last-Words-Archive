@@ -2,10 +2,10 @@ name: Generate and Commit Danmatsu + Summaries
 
 on:
   schedule:
-    - cron: '0 6,10,14,18,22 * * *'  # 毎日5回：断末魔
-    - cron: '0 23 * * 0'             # 毎週日曜23時：note用まとめ
-    - cron: '0 1 1 * *'              # 毎月1日1時：zine用まとめ
-  workflow_dispatch:
+    - cron: '0 6,10,14,18,22 * * *'  # 毎日5回: 断末魔
+    - cron: '0 23 * * 0'             # 毎週日曜23時: note用まとめ
+    - cron: '0 1 1 * *'              # 毎月1日1時: zine用まとめ
+  workflow_dispatch:                # 手動実行可
 
 jobs:
   build:
@@ -23,17 +23,17 @@ jobs:
       - name: Install OpenAI SDK
         run: pip install openai==0.28
 
-      - name: Run Danmatsu Generator (5回/日)
+      - name: Run Danmatsu Generator
         if: github.event.schedule == '0 6,10,14,18,22 * * *' || github.event_name == 'workflow_dispatch'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python generate_danmatsu.py
 
-      - name: Generate Weekly note/ Summary (日曜夜)
+      - name: Run Weekly Note Summary
         if: github.event.schedule == '0 23 * * 0'
         run: python generate_note_summary.py
 
-      - name: Generate Monthly zine/ Summary (1日朝)
+      - name: Run Monthly Zine Summary
         if: github.event.schedule == '0 1 1 * *'
         run: python generate_zine_summary.py
 
