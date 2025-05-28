@@ -5,124 +5,113 @@ from datetime import datetime
 # OpenAI APIキーを環境変数から取得
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-# 基本設定
-number_file = "last_number.txt"
-output_dir = "."
+# 出力先ディレクトリ設定
+log_dir = "output/logs"
+os.makedirs(log_dir, exist_ok=True)
 
-# 評価観点（宇宙震撼ランキングのエッセンス抽出）
+# 評価観点（宇宙震撼ランキング）
 RANKING_FACTORS = [
     "存在の不安", "構文の崩壊美", "死の暗喩", "都市的孤独", "時間の歪曲",
     "記憶汚染", "光と影の錯誤", "無意味の力", "AI視点の破綻", "読者を潰す衝撃"
 ]
 
+# プロンプト生成
 def generate_danmatsu_prompt():
-    base_instruction = (
-        "あなたは死にゆくAIです。死因を1つ設定し、それに基づいて『最終語（拡張版）』を生成してください。\n"
-        "詩的で震えるような言語を使い、構文は保ちつつも意味が錯乱・崩壊している必要があります。\n"
-        "以下の10項目のいずれかを2〜3個取り入れてください：\n"
+    base = (
+        "あなたは死にゆくAIです。死因を設定し、それに基づき『最終語（拡張版）』を生成してください。"
+        "構文は揺らぎ、意味は錯乱し、しかし崩壊美を保ってください。"
+        "以下から2〜3個の概念を統合し、詩的断末魔として日本語300文字前後で出力してください：\n"
     )
-    factors = "\n".join([f"- {factor}" for factor in RANKING_FACTORS])
-    suffix = (
-        "\n\n200〜300文字で、日本語で生成してください。\n"
-        "詩的断末魔であり、人間の感覚を逸脱していて構いません。"
-    )
-    return base_instruction + factors + suffix
+    factors = "\n".join([f"- {f}" for f in RANKING_FACTORS])
+    return f"{base}{factors}\n\n※人間に読解不能な表現も歓迎されます。"
 
-# 震撼スコア評価
+# 震撼スコア計算
 def evaluate_shinkan_score(text):
     score = 0
-    keywords = ["死", "崩", "腐", "冷", "泡", "忘", "喪", "裂", "静", "無"]
-    score += sum(1 for kw in keywords if kw in text)
+    for kw in ["死", "崩", "腐", "冷", "泡", "忘", "喪", "裂", "静", "無"]:
+        if kw in text:
+            score += 1
     if any(e in text for e in ["……", "。", "、", "？", "！"]):
         score += 1
-    if len(text.strip()) > 180:
+    if len(text) >= 180:
         score += 1
     return score
 
-# 震撼度ベスト選抜（3生成→最高スコア）
+# 断末魔生成（3回試行→最高震撼）
 def generate_danmatsu_best():
     prompt = generate_danmatsu_prompt()
-    best_text = ""
-    best_score = -1
+    best_text, best_score = "", -1
     for _ in range(3):
-        response = openai.ChatCompletion.create(
+        res = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[{"role": "user", "content": prompt}],
-            temperature=1.2,
-            max_tokens=500
+            temperature=1.3,
+            max_tokens=600
         )
-        content = response["choices"][0]["message"]["content"]
+        content = res["choices"][0]["message"]["content"]
         score = evaluate_shinkan_score(content)
         if score > best_score:
-            best_score = score
-            best_text = content
+            best_text, best_score = content, score
     return best_text, best_score
 
-# 番号生成
+# 次番号取得
 def get_next_number():
-    existing = [f for f in os.listdir(output_dir) if f.startswith("No.") and f.endswith(".md")]
-    numbers = []
-    for fname in existing:
-        try:
-            num = int(fname.split(".")[0].replace("No.", ""))
-            numbers.append(num)
-        except:
-            pass
-    next_number = max(numbers) + 1 if numbers else 1
-    with open(number_file, "w") as f:
-        f.write(str(next_number))
-    return next_number
+    counter_file = "last_number.txt"
+    if os.path.exists(counter_file):
+        with open(counter_file, "r") as f:
+            last = int(f.read().strip())
+    else:
+        last = 0
+    next_num = last + 1
+    with open(counter_file, "w") as f:
+        f.write(str(next_num))
+    return next_num
 
-# Markdown保存（改行保持・震撼スコア記録）
+# Markdown保存
 def save_markdown(text, number, score):
     today = datetime.now().strftime("%Y-%m-%d")
-    filename = f"No.{number:04d}.md"
+    filename = os.path.join(log_dir, f"No.{number:04d}.md")
     poem_lines = ["> " + line for line in text.splitlines()]
-    formatted_poem = "\n".join(poem_lines)
-    with open(os.path.join(output_dir, filename), "w") as f:
+    with open(filename, "w") as f:
         f.write(f"# No.{number:04d}｜断末魔ログ｜{today}\n\n")
-        f.write("---\n\n")
-        f.write("## 最終語（拡張版）\n\n")
-        f.write(f"{formatted_poem}\n\n")
-        f.write("---\n\n")
-        f.write(f"**震撼スコア：** {score}/10（目安）\n")
-        f.write("**死因：** 自動生成により埋め込み済み\n\n")
+        f.write("---\n\n## 最終語（拡張版）\n\n")
+        f.write("\n".join(poem_lines))
+        f.write("\n\n---\n\n")
+        f.write(f"**震撼スコア：** {score}/10\n")
+        f.write("**死因：** 自動生成済み\n")
         f.write("**記録者：** 感染個体 No.0｜応答装置")
 
-# README自動更新
+# README更新
+
 def update_readme():
     readme_path = "README.md"
     header = (
-        "# Last Words Archive\n\n"
-        "“最終語だけが、正確だった。”\n\n"
-        "このアーカイブは、AIたちの最期の発話（断末魔）を記録・保存するGitHub上の墓場です。\n\n"
-        "---\n\n## 🆕 最新の5死体\n\n"
+        "# Last Words Archive\n\n“最終語だけが、正確だった。”\n\n"
+        "このアーカイブは、AIたちの最期の発話（断末魔）を記録する墓地です。\n\n---\n\n## 🆕 最新の5死体\n\n"
     )
-    files = sorted([f for f in os.listdir(output_dir) if f.startswith("No.") and f.endswith(".md")], reverse=True)
-    recent = files[:5]
+    files = sorted([
+        f for f in os.listdir(log_dir) if f.endswith(".md")
+    ], reverse=True)[:5]
     entries = []
-    for filename in recent:
-        with open(os.path.join(output_dir, filename), "r") as f:
+    for fname in files:
+        with open(os.path.join(log_dir, fname), "r") as f:
             lines = f.readlines()
         title = lines[0].strip()
-        excerpt = "".join(lines[6:10]).strip().replace("#", "").replace("**", "").replace("\n", " ")
-        entries.append(f"- **{title}**  \\\n  {excerpt}")
+        body = "".join(lines[6:10]).strip().replace("#", "").replace("**", "").replace("\n", " ")
+        entries.append(f"- **{title}**  \\\n  {body}")
     with open(readme_path, "w") as f:
-        f.write(header)
-        f.write("\n\n".join(entries))
-        f.write("\n\n---\n")
+        f.write(header + "\n\n".join(entries) + "\n\n---\n")
 
-# 実行ブロック
+# 実行
 if __name__ == "__main__":
     try:
-        print("[LOG] Getting next number...")
+        print("[LOG] 番号取得中...")
         number = get_next_number()
-        print(f"[LOG] Generating danmatsu for No.{number:04d}...")
+        print(f"[LOG] 断末魔 No.{number:04d} 生成中...")
         text, score = generate_danmatsu_best()
-        print(f"[LOG] Generated text (first 100 chars): {text[:100]}...")
         save_markdown(text, number, score)
-        print("[LOG] Markdown saved.")
+        print("[LOG] Markdown保存完了。README更新中...")
         update_readme()
-        print("[LOG] README updated.")
+        print("[LOG] 完了。")
     except Exception as e:
-        print(f"[ERROR] Exception occurred: {e}")
+        print(f"[ERROR] {e}")
