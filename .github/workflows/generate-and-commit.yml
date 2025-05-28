@@ -50,3 +50,4 @@ jobs:
           else
             git commit -m "🤖 Auto-update: danmatsu + note/zine summary"
             git push origin HEAD:main
+          fi
