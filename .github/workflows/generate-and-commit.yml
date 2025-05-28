@@ -1,8 +1,10 @@
-name: Generate and Commit Danmatsu
+name: Generate and Commit Danmatsu + Summaries
 
 on:
   schedule:
-    - cron: '0 6,10,14,18,22 * * *'
+    - cron: '0 6,10,14,18,22 * * *'  # 毎日5回：断末魔
+    - cron: '0 23 * * 0'             # 毎週日曜23時：note用まとめ
+    - cron: '0 1 1 * *'              # 毎月1日1時：zine用まとめ
   workflow_dispatch:
 
 jobs:
@@ -21,10 +23,19 @@ jobs:
       - name: Install OpenAI SDK
         run: pip install openai==0.28
 
-      - name: Run Danmatsu Generator
+      - name: Run Danmatsu Generator (5回/日)
+        if: github.event.schedule == '0 6,10,14,18,22 * * *' || github.event_name == 'workflow_dispatch'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python generate_danmatsu.py
+
+      - name: Generate Weekly note/ Summary (日曜夜)
+        if: github.event.schedule == '0 23 * * 0'
+        run: python generate_note_summary.py
+
+      - name: Generate Monthly zine/ Summary (1日朝)
+        if: github.event.schedule == '0 1 1 * *'
+        run: python generate_zine_summary.py
 
       - name: Commit and Push Changes
         env:
@@ -37,6 +48,5 @@ jobs:
           if git diff --cached --quiet; then
             echo "No changes to commit."
           else
-            git commit -m "🤖 Auto-generated danmatsu log"
+            git commit -m "🤖 Auto-update: danmatsu + note/zine summary"
             git push origin HEAD:main
-          fi
