@@ -2,7 +2,7 @@ name: Generate and Commit Danmatsu + Summaries
 
 on:
   schedule:
-    - cron: '0 6,10,14,18,22 * * *'  # 毎日5回: 断末魔
+    - cron: '0 ,14,18,22 * * *'  # 毎日3回: 断末魔
     - cron: '0 23 * * 0'             # 毎週日曜23時: note用まとめ
     - cron: '0 1 1 * *'              # 毎月1日1時: zine用まとめ
   workflow_dispatch:                # 手動実行可
