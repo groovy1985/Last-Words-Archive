@@ -45,9 +45,11 @@ jobs:
           git config --global user.email "no-reply@syntax.death"
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
 
+          # 先に fetch → rebase（ローカル変更なし状態でやる）
           git fetch origin
           git rebase origin/main || git rebase --skip
 
+          # 差分追加は rebase 後に行う
           git add .
           CHANGES=$(git diff --cached --name-only)
           if [ -z "$CHANGES" ]; then
