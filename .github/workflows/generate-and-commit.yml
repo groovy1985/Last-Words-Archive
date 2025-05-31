@@ -45,11 +45,9 @@ jobs:
           git config --global user.email "no-reply@syntax.death"
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
 
-          # 先に fetch → rebase（ローカル変更なし状態でやる）
-          git fetch origin
-          git rebase origin/main || git rebase --skip
+          # 最新のmainを取得（fast-forwardのみ許可）
+          git pull --ff-only origin main || echo "No fast-forward possible, skipping pull."
 
-          # 差分追加は rebase 後に行う
           git add .
           CHANGES=$(git diff --cached --name-only)
           if [ -z "$CHANGES" ]; then
@@ -58,6 +56,7 @@ jobs:
             git commit -m "🤖 Auto-update: danmatsu + note/zine summary"
             git push origin HEAD:main
           fi
+
 
       - name: Notify Poemkun Bot
         run: |
