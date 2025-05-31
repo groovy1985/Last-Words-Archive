@@ -44,13 +44,17 @@ jobs:
           git config --global user.name "syntax-death"
           git config --global user.email "no-reply@syntax.death"
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
+
           git add .
-          if git diff --cached --quiet; then
+
+          CHANGES=$(git diff --cached --name-only)
+          if [ -z "$CHANGES" ]; then
             echo "No changes to commit."
           else
             git commit -m "🤖 Auto-update: danmatsu + note/zine summary"
             git push origin HEAD:main
-
+          fi
+          
       - name: Notify Poemkun Bot
         run: |
           curl -X POST https://your-server.com/webhook/poemkun \
