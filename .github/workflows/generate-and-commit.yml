@@ -2,10 +2,10 @@ name: Generate and Commit Danmatsu + Summaries
 
 on:
   schedule:
-    - cron: '0 ,14,18,22 * * *'  # 毎日3回: 断末魔
-    - cron: '0 23 * * 0'             # 毎週日曜23時: note用まとめ
-    - cron: '0 1 1 * *'              # 毎月1日1時: zine用まとめ
-  workflow_dispatch:                # 手動実行可
+    - cron: '0 6,10,14,18,22 * * *'    # 毎日5回: 断末魔
+    - cron: '0 23 * * 0'               # 毎週日曜23時: note用まとめ
+    - cron: '0 1 1 * *'                # 毎月1日1時: zine用まとめ
+  workflow_dispatch:                   # 手動実行可
 
 jobs:
   build:
@@ -50,4 +50,9 @@ jobs:
           else
             git commit -m "🤖 Auto-update: danmatsu + note/zine summary"
             git push origin HEAD:main
-          fi
+
+      - name: Notify Poemkun Bot
+        run: |
+          curl -X POST https://your-server.com/webhook/poemkun \
+            -H "Content-Type: application/json" \
+            -d '{"repo": "Last-Words-Archive", "trigger": "danmatsu-update"}'
