@@ -45,8 +45,10 @@ jobs:
           git config --global user.email "no-reply@syntax.death"
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
 
-          git add .
+          git fetch origin
+          git rebase origin/main || git rebase --skip
 
+          git add .
           CHANGES=$(git diff --cached --name-only)
           if [ -z "$CHANGES" ]; then
             echo "No changes to commit."
@@ -54,6 +56,7 @@ jobs:
             git commit -m "🤖 Auto-update: danmatsu + note/zine summary"
             git push origin HEAD:main
           fi
+
           
       - name: Notify Poemkun Bot
         run: |
