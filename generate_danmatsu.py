@@ -19,7 +19,7 @@ def generate_danmatsu_best():
         "Do not explain. Let the sentence fall apart while appearing coherent."
     )
 
-    best_text, best_score, best_jp = "", -1, ""
+    best_text, best_score = "", -1
 
     for _ in range(3):
         res = openai.ChatCompletion.create(
@@ -110,7 +110,7 @@ def update_readme():
     with open(readme_path, "w", encoding="utf-8") as f:
         f.write(header + "\n\n".join(entries) + "\n\n---\n")
 
-# 詩から投稿用1文抽出
+# 詩から投稿文を抽出（140字以内）
 def extract_post(text):
     lines = text.replace(">", "").splitlines()
     for line in lines:
@@ -119,6 +119,26 @@ def extract_post(text):
             return clean
     return lines[0][:140] if lines else "（投稿文が取得できませんでした）"
 
-# 実行
+# 実行本体
 if __name__ == "__main__":
     try:
+        print("[LOG] 番号取得中...")
+        number = get_next_number()
+        print(f"[LOG] 断末魔 No.{number:04d} 生成中...")
+        text, score = generate_danmatsu_best()
+        save_markdown(text, number, score)
+        print("[LOG] Markdown保存完了。")
+
+        post_text = extract_post(text)
+        print("[LOG] 投稿候補文:\n", post_text)
+
+        if is_valid_post(post_text):
+            tweet_post(post_text)
+            print("[LOG] ✅ 投稿完了")
+        else:
+            print("[WARN] 投稿スキップ（validate_post によって弾かれました）")
+
+        update_readme()
+        print("[LOG] README更新完了。")
+    except Exception as e:
+        print(f"[ERROR] {e}")
