@@ -72,5 +72,5 @@ jobs:
           curl -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${BABAA_PAT}" \
-            https://api.github.com/repos/groovy1985/babaa-bot/dispatches \
+            https://api.github.com/repos/groovy1985/Lamborghini-babaa/dispatches \
             -d '{"event_type":"babaa_post_update_trigger","client_payload":{"repo":"last-words","trigger":"dispatch"}}'
