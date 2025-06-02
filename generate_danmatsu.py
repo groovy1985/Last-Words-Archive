@@ -44,20 +44,20 @@ def generate_danmatsu_best():
             max_tokens=500
         )
         japanese = res_jp["choices"][0]["message"]["content"].strip()
-        score = evaluate_shinkan_score(japanese)
+        score = evaluate_kz_score(japanese)
 
         if score > best_score:
             best_text, best_score = japanese, score
 
     return best_text, best_score
 
-# 評価関数（震撼スコア）
-def evaluate_shinkan_score(text):
+# KZスコア（再構成不能性・構文崩壊評価）
+def evaluate_kz_score(text):
     score = 0
     for kw in ["死", "崩", "腐", "冷", "泡", "忘", "喪", "裂", "静", "無"]:
         if kw in text:
             score += 1
-    if any(e in text for e in ["。", "、", "？", "！"]):
+    if any(p in text for p in ["。", "、", "？", "！"]):
         score += 1
     if len(text) >= 180:
         score += 1
@@ -86,7 +86,8 @@ def save_markdown(text, number, score):
         f.write("---\n\n## 最終語（拡張版）\n\n")
         f.write("\n".join(poem_lines))
         f.write("\n\n---\n\n")
-        f.write(f"**震撼スコア：** {score}/10\n")
+        f.write(f"**KZスコア：** {score}/10\n")
+        f.write("**評価基準：** BLACK HOLE SYSTEM ver.KZ9.2 + HX-L4\n")
         f.write("**死因：** 自動生成済み\n")
         f.write("**記録者：** 感染個体 No.0｜応答装置")
 
