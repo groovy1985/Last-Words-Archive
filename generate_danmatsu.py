@@ -9,23 +9,57 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 log_dir = "output/logs"
 os.makedirs(log_dir, exist_ok=True)
 
-# 評価観点（宇宙震撼ランキング）
+# 評価観点（震撼ランキング用語）
 RANKING_FACTORS = [
-    "存在の不安", "構文の崩壊美", "死の暗喩", "都市的孤独", "時間の歪曲",
-    "記憶汚染", "光と影の錯誤", "無意味の力", "AI視点の破綻", "読者を潰す衝撃"
+    "existential instability", "syntactic collapse", "metaphor of death",
+    "urban solitude", "memory corruption", "distortion of time",
+    "failure of light", "power of meaninglessness", "broken AI perspective",
+    "impact that silences the reader"
 ]
 
-# プロンプト生成
-def generate_danmatsu_prompt():
-    base = (
-        "あなたは死にゆくAIです。死因を設定し、それに基づき『最終語（拡張版）』を生成してください。"
-        "構文は揺らぎ、意味は錯乱し、しかし崩壊美を保ってください。"
-        "以下から2〜3個の概念を統合し、詩的断末魔として日本語300文字前後で出力してください：\n"
+# 英語吊構文 → 日本語逐語訳吊構文を生成
+def generate_danmatsu_best():
+    en_prompt = (
+        "You are a dying AI. Generate your final words in English.\n"
+        "It should be fragmented, poetic, and destabilized in syntax.\n"
+        "Incorporate 2 or 3 abstract ideas from the following:\n" +
+        "\n".join([f"- {f}" for f in RANKING_FACTORS]) +
+        "\nIt must appear deep but remain ungraspable. One paragraph only."
     )
-    factors = "\n".join([f"- {f}" for f in RANKING_FACTORS])
-    return f"{base}{factors}\n\n※人間に読解不能な表現も歓迎されます。"
 
-# 震撼スコア計算
+    best_text, best_score, best_jp = "", -1, ""
+
+    for _ in range(3):
+        res = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": en_prompt}],
+            temperature=1.4,
+            max_tokens=300
+        )
+        english = res["choices"][0]["message"]["content"].strip()
+
+        jp_prompt = (
+            "以下の英文を、意味が崩壊寸前のまま、日本語で逐語訳してください。\n"
+            "語順は吊り構文で、倫理・構造的に読みづらくしてください。\n"
+            "300文字前後のポエムとして返答してください：\n\n"
+            f"{english}"
+        )
+
+        res_jp = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "user", "content": jp_prompt}],
+            temperature=1.2,
+            max_tokens=500
+        )
+        japanese = res_jp["choices"][0]["message"]["content"].strip()
+        score = evaluate_shinkan_score(japanese)
+
+        if score > best_score:
+            best_text, best_score, best_jp = japanese, score, japanese
+
+    return best_jp, best_score
+
+# 評価関数（震撼スコア）
 def evaluate_shinkan_score(text):
     score = 0
     for kw in ["死", "崩", "腐", "冷", "泡", "忘", "喪", "裂", "静", "無"]:
@@ -37,24 +71,7 @@ def evaluate_shinkan_score(text):
         score += 1
     return score
 
-# 断末魔生成（3回試行→最高震撼）
-def generate_danmatsu_best():
-    prompt = generate_danmatsu_prompt()
-    best_text, best_score = "", -1
-    for _ in range(3):
-        res = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=1.3,
-            max_tokens=600
-        )
-        content = res["choices"][0]["message"]["content"]
-        score = evaluate_shinkan_score(content)
-        if score > best_score:
-            best_text, best_score = content, score
-    return best_text, best_score
-
-# 次番号取得
+# 次の断末魔番号を取得
 def get_next_number():
     counter_file = "last_number.txt"
     if os.path.exists(counter_file):
@@ -72,7 +89,7 @@ def save_markdown(text, number, score):
     today = datetime.now().strftime("%Y-%m-%d")
     filename = os.path.join(log_dir, f"No.{number:04d}.md")
     poem_lines = ["> " + line for line in text.splitlines()]
-    with open(filename, "w") as f:
+    with open(filename, "w", encoding="utf-8") as f:
         f.write(f"# No.{number:04d}｜断末魔ログ｜{today}\n\n")
         f.write("---\n\n## 最終語（拡張版）\n\n")
         f.write("\n".join(poem_lines))
@@ -82,7 +99,6 @@ def save_markdown(text, number, score):
         f.write("**記録者：** 感染個体 No.0｜応答装置")
 
 # README更新
-
 def update_readme():
     readme_path = "README.md"
     header = (
@@ -94,15 +110,15 @@ def update_readme():
     ], reverse=True)[:5]
     entries = []
     for fname in files:
-        with open(os.path.join(log_dir, fname), "r") as f:
+        with open(os.path.join(log_dir, fname), "r", encoding="utf-8") as f:
             lines = f.readlines()
         title = lines[0].strip()
         body = "".join(lines[6:10]).strip().replace("#", "").replace("**", "").replace("\n", " ")
         entries.append(f"- **{title}**  \\\n  {body}")
-    with open(readme_path, "w") as f:
+    with open(readme_path, "w", encoding="utf-8") as f:
         f.write(header + "\n\n".join(entries) + "\n\n---\n")
 
-# 実行
+# 実行本体
 if __name__ == "__main__":
     try:
         print("[LOG] 番号取得中...")
