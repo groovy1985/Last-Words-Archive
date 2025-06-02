@@ -2,7 +2,7 @@ name: Generate and Commit Danmatsu + Summaries
 
 on:
   schedule:
-    - cron: '0 6,10,14,18,22 * * *'    # 毎日5回: 断末魔
+    - cron: '0 6,10,14,18,22 * * *'    # 毎日5回: 断末魔生成
     - cron: '0 23 * * 0'               # 毎週日曜23時: note用まとめ
     - cron: '0 1 1 * *'                # 毎月1日1時: zine用まとめ
   workflow_dispatch:                   # 手動実行可
@@ -12,40 +12,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 📁 Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Python
+      - name: 🐍 Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      - name: Install OpenAI SDK
+      - name: 📦 Install OpenAI SDK
         run: pip install openai==0.28
 
-      - name: Run Danmatsu Generator
+      - name: 🧠 Run Danmatsu Generator
         if: github.event.schedule == '0 6,10,14,18,22 * * *' || github.event_name == 'workflow_dispatch'
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: python generate_danmatsu.py
 
-      - name: Run Weekly Note Summary
+      - name: 🗒️ Run Weekly Note Summary
         if: github.event.schedule == '0 23 * * 0'
         run: python generate_note_summary.py
 
-      - name: Run Monthly Zine Summary
+      - name: 📰 Run Monthly Zine Summary
         if: github.event.schedule == '0 1 1 * *'
         run: python generate_zine_summary.py
 
-      - name: Commit and Push Changes
+      - name: 💾 Commit and Push Changes
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           git config --global user.name "syntax-death"
           git config --global user.email "no-reply@syntax.death"
           git remote set-url origin https://x-access-token:${GH_TOKEN}@github.com/${{ github.repository }}
-
-          # 最新のmainを取得（fast-forwardのみ許可）
           git pull --ff-only origin main || echo "No fast-forward possible, skipping pull."
 
           git add .
@@ -57,9 +55,12 @@ jobs:
             git push origin HEAD:main
           fi
 
-
-      - name: Notify Poemkun Bot
+      - name: 📡 Notify Poemkun Bot via GitHub Dispatch
+        env:
+          POEMKUN_PAT: ${{ secrets.POEMKUN_PAT }}
         run: |
-          curl -X POST https://your-server.com/webhook/poemkun \
-            -H "Content-Type: application/json" \
-            -d '{"repo": "Last-Words-Archive", "trigger": "danmatsu-update"}'
+          curl -X POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${POEMKUN_PAT}" \
+            https://api.github.com/repos/groovy1985/poem_kun/dispatches \
+            -d '{"event_type":"post_update_trigger","client_payload":{"repo":"last-words","trigger":"dispatch"}}'
