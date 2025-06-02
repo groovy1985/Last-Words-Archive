@@ -1,8 +1,6 @@
 import openai
 import os
 from datetime import datetime
-from tweet_with_token import tweet_post
-from validate_post import is_valid_post
 
 # OpenAI APIキー
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -51,7 +49,7 @@ def generate_danmatsu_best():
 
     return best_text, best_score
 
-# KZスコア（再構成不能性・構文崩壊評価）
+# KZスコア評価
 def evaluate_kz_score(text):
     score = 0
     for kw in ["死", "崩", "腐", "冷", "泡", "忘", "喪", "裂", "静", "無"]:
@@ -111,16 +109,7 @@ def update_readme():
     with open(readme_path, "w", encoding="utf-8") as f:
         f.write(header + "\n\n".join(entries) + "\n\n---\n")
 
-# 詩から投稿文を抽出（140字以内）
-def extract_post(text):
-    lines = text.replace(">", "").splitlines()
-    for line in lines:
-        clean = line.strip()
-        if 40 <= len(clean) <= 140:
-            return clean
-    return lines[0][:140] if lines else "（投稿文が取得できませんでした）"
-
-# 実行本体
+# 実行
 if __name__ == "__main__":
     try:
         print("[LOG] 番号取得中...")
@@ -128,18 +117,8 @@ if __name__ == "__main__":
         print(f"[LOG] 断末魔 No.{number:04d} 生成中...")
         text, score = generate_danmatsu_best()
         save_markdown(text, number, score)
-        print("[LOG] Markdown保存完了。")
-
-        post_text = extract_post(text)
-        print("[LOG] 投稿候補文:\n", post_text)
-
-        if is_valid_post(post_text):
-            tweet_post(post_text)
-            print("[LOG] ✅ 投稿完了")
-        else:
-            print("[WARN] 投稿スキップ（validate_post によって弾かれました）")
-
+        print("[LOG] Markdown保存完了。README更新中...")
         update_readme()
-        print("[LOG] README更新完了。")
+        print("[LOG] ✅ 完了：GitにPushしてください。")
     except Exception as e:
         print(f"[ERROR] {e}")
