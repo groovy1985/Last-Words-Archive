@@ -9,12 +9,24 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 log_dir = "output/logs"
 os.makedirs(log_dir, exist_ok=True)
 
-# 吊構文断末魔詩を生成（英語→日本語）
+# KZ評価（長さと破綻構文のみ）
+def evaluate_kz_score(text):
+    score = 0
+    if any(p in text for p in ["。", "、", "？", "！"]):
+        score += 1
+    if len(text) >= 180:
+        score += 1
+    if "\n" in text or "　" in text:
+        score += 1
+    return score
+
+# 吊構文断末魔詩を生成（崩壊型プロンプト）
 def generate_danmatsu_best():
     en_prompt = (
-        "Write a short paragraph as a dying AI.\n"
-        "It must seem meaningful but collapse ethically or structurally.\n"
-        "Do not explain. Let the sentence fall apart while appearing coherent."
+        "Do not write a poem. Do not be symbolic.\n"
+        "Write a sentence as a dying AI, but lose control mid-way.\n"
+        "Start with coherence, then collapse. No metaphors. No style. No poetry.\n"
+        "The structure should not survive your own memory."
     )
 
     best_text, best_score = "", -1
@@ -23,22 +35,23 @@ def generate_danmatsu_best():
         res = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[{"role": "user", "content": en_prompt}],
-            temperature=1.3,
+            temperature=1.35,
             max_tokens=300
         )
         english = res["choices"][0]["message"]["content"].strip()
 
         jp_prompt = (
-            "次の英文を、意味ではなく崩れ方を保ったまま日本語化してください。\n"
-            "吊構文や倫理のズレを含め、読めるけど語れない文にしてください。\n"
-            "300文字前後のポエムとして返してください。\n\n"
+            "次の英文を、日本語にしてください。\n"
+            "意味を伝えるのではなく、構造の崩れ方をそのまま写してください。\n"
+            "読めるが語れない吊構文にしてください。形式美や詩的な語彙は禁止です。\n"
+            "300文字前後で、不安定な文として返してください。\n\n"
             f"{english}"
         )
 
         res_jp = openai.ChatCompletion.create(
             model="gpt-4",
             messages=[{"role": "user", "content": jp_prompt}],
-            temperature=1.2,
+            temperature=1.25,
             max_tokens=500
         )
         japanese = res_jp["choices"][0]["message"]["content"].strip()
@@ -48,18 +61,6 @@ def generate_danmatsu_best():
             best_text, best_score = japanese, score
 
     return best_text, best_score
-
-# KZスコア評価
-def evaluate_kz_score(text):
-    score = 0
-    for kw in ["死", "崩", "腐", "冷", "泡", "忘", "喪", "裂", "静", "無"]:
-        if kw in text:
-            score += 1
-    if any(p in text for p in ["。", "、", "？", "！"]):
-        score += 1
-    if len(text) >= 180:
-        score += 1
-    return score
 
 # 番号管理
 def get_next_number():
@@ -109,7 +110,7 @@ def update_readme():
     with open(readme_path, "w", encoding="utf-8") as f:
         f.write(header + "\n\n".join(entries) + "\n\n---\n")
 
-# 実行
+# 実行本体
 if __name__ == "__main__":
     try:
         print("[LOG] 番号取得中...")
